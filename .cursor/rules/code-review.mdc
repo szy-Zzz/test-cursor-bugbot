@@ -159,6 +159,11 @@ interface UserCardProps {
 **审查要点：**
 - **死循环检测**：检查for、while、递归等是否存在无限循环风险
 - **内存泄漏风险**：识别可能导致内存泄漏的代码模式（事件监听器未清理、闭包引用等）
+- **对象引用共享错误**：检查是否存在多个变量指向同一对象引用的问题，特别关注以下模式：
+  - reduce初始值中同一对象被多次引用
+  - 变量赋值时直接使用同一对象引用
+  - 对象字面量在循环中被复用
+  - 初始化状态时多个属性指向同一对象
 - **异步操作处理**：检查Promise、async/await的正确使用和错误处理
 - **状态变更逻辑**：验证React状态更新的正确性，避免直接修改state
 - **副作用控制**：检查useEffect依赖项和清理函数的正确使用
@@ -205,6 +210,32 @@ const ProblematicComponent = () => {
     return <div onClick={handleClick}>...</div>;
 };
 
+// ❌ 对象引用共享错误
+const processStatistics = () => {
+    const baseObj = { count: 0, total: 0 };
+    const result = ['success', 'error', 'pending'].reduce(
+        (acc, status) => {
+            // 错误：所有状态都指向同一个对象引用
+            acc[status] = baseObj;
+            return acc;
+        },
+        {} as Record<string, typeof baseObj>
+    );
+    
+    // 修改任何一个状态都会影响其他状态
+    result.success.count = 10; // 这会同时修改error和pending的count
+    return result;
+};
+
+// ❌ 另一个常见的对象引用错误
+const initializeCounters = () => {
+    const initialState = { value: 0 };
+    return {
+        normal: initialState,
+        special: initialState, // 错误：两个属性指向同一对象
+    };
+};
+
 // ❌ 异步操作错误处理缺失
 const fetchUserData = async (userId: string) => {
     const response = await fetch(`/api/users/${userId}`);
@@ -240,6 +271,60 @@ const ImprovedComponent = () => {
     }, []);
     
     return <div onClick={handleClick}>...</div>;
+};
+
+// ✅ 修复对象引用共享错误
+const processStatistics = () => {
+    const result = ['success', 'error', 'pending'].reduce(
+        (acc, status) => {
+            // 正确：为每个状态创建独立的对象
+            acc[status] = { count: 0, total: 0 };
+            return acc;
+        },
+        {} as Record<string, { count: number; total: number }>
+    );
+    
+    // 现在修改一个状态不会影响其他状态
+    result.success.count = 10;
+    return result;
+};
+
+// ✅ 正确的对象初始化
+const initializeCounters = () => {
+    return {
+        normal: { value: 0 }, // 每个属性都有独立的对象
+        special: { value: 0 },
+    };
+};
+
+// ✅ 使用工厂函数确保对象独立性
+const createInitialState = () => ({ value: 0 });
+
+const initializeCountersWithFactory = () => {
+    return {
+        normal: createInitialState(),
+        special: createInitialState(),
+    };
+};
+
+// ✅ 在reduce中使用展开运算符创建新对象
+const mergeStatistics = (dataList: Array<{ a: number; b: number }>) => {
+    return dataList.reduce(
+        (acc, item) => {
+            const key = Math.random() > 0.5 ? 'normal' : 'redo';
+            // 使用展开运算符创建新对象，避免引用共享
+            acc[key] = {
+                ...acc[key],
+                a: acc[key].a + item.a,
+                b: acc[key].b + item.b,
+            };
+            return acc;
+        },
+        { 
+            normal: { a: 0, b: 0 }, 
+            redo: { a: 0, b: 0 } 
+        }
+    );
 };
 
 // ✅ 完善的异步错误处理
@@ -371,6 +456,10 @@ const Component = ({ items }) => {
 - [具体问题描述]
 - 建议：[改进建议]
 
+#### 🔗 对象引用共享错误
+- [具体问题描述]
+- 建议：[改进建议]
+
 #### ⚡ 性能和内存问题
 - [具体问题描述]
 - 建议：[改进建议]
@@ -467,6 +556,7 @@ edit_file({
 - ❌ 存在性能问题（内存泄漏、无限循环等）
 - ❌ 类型安全问题（使用any类型、缺少类型定义）
 - ❌ 明显的代码缺陷（错误的逻辑、未处理的异常）
+- ❌ 对象引用共享错误（多个变量指向同一对象引用，特别是在reduce、初始化对象时）
 
 **可选提供修改建议的情况：**
 - ⚠️ 命名规范问题

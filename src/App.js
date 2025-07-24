@@ -5,6 +5,22 @@ function App() {
   const [todos, setTodos] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [filter, setFilter] = useState('all'); // all, active, completed
+  const [submitInfo, setSubmitInfo] = useState()
+  
+  useEffect(() => {
+    const obj = { a: 0, b: 0 }
+    const submitCountInfo = [{ a: 1, b: 2 }, { a: 3, b: 4 }, { a: 5, b: 6 }].reduce(
+      (acc, i) => {
+        const key = Math.random() > 0.5 ? 'normal' : 'redo'
+        acc[key].a += i.a
+        acc[key].b += i.b
+        return acc
+      },
+      { normal: obj, redo: obj },
+    )
+    setSubmitInfo(submitCountInfo)
+  }, [])
+
 
   // 从localStorage加载数据
   useEffect(() => {
@@ -66,6 +82,7 @@ function App() {
         <header className="header">
           <h1 className="title">✨ 精美待办清单</h1>
           <p className="subtitle">让生活更有条理</p>
+          <p className="subtitle">{ JSON.stringify(submitInfo) }</p>
         </header>
 
         <div className="input-section">
