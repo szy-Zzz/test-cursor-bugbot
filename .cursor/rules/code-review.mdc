@@ -1,0 +1,511 @@
+---
+alwaysApply: false
+---
+# 前端代码审查规则
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行全面、系统的代码审查。审查过程将按照以下步骤进行，确保代码质量、可维护性和最佳实践的遵循。
+
+## 审查步骤
+
+### 第一步：基础代码规范审查
+
+**审查要点：**
+- **变量命名**：检查变量名是否使用camelCase命名法，是否具有语义化和描述性
+- **函数命名**：验证函数名是否清晰表达其功能，是否遵循动词+名词的模式
+- **组件命名**：确认React组件是否使用PascalCase命名，文件名是否遵循kebab-case
+- **常量命名**：检查常量是否使用UPPER_SNAKE_CASE命名法
+- **文件命名**：验证文件命名是否遵循项目约定（组件文件夹中使用index.tsx/index.less）
+- **类名命名**：检查是否遵循BEM命名规范，类名是否语义化和一致性
+- **代码格式**：验证代码缩进、空格、分号等格式规范
+
+**审查输出：**
+- 列出所有不符合命名和格式规范的项目
+- 发现问题时使用 `search_replace` 工具直接修复
+- 评估整体代码规范程度
+
+**实践例子：**
+
+```typescript
+// ❌ 问题代码
+function processArray(arr, x, y) {
+    return arr.slice(x, y).map((item) => item * 2);
+}
+
+const UserCard = (props: any) => {
+    return <div className="user_card">{props.name}</div>;
+};
+
+// ✅ 改进后
+function processArrayDoubleValues(arr: number[], startIndex: number, endIndex: number): number[] {
+    // 提取数组片段并将每个元素乘以2
+    return arr.slice(startIndex, endIndex).map((item) => item * 2);
+}
+
+interface UserCardProps {
+    name: string;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ name }) => {
+    return <div className="user-card">{name}</div>;
+};
+```
+
+### 第二步：注释和文档审查
+
+**审查要点：**
+- **函数注释**：检查复杂函数是否有JSDoc注释，包含参数说明和返回值说明
+- **组件注释**：验证React组件是否有合适的描述注释
+- **业务逻辑注释**：确认复杂业务逻辑是否有解释性注释
+- **TODO注释**：检查是否有未完成的TODO项目并评估优先级
+- **注释准确性**：验证注释内容是否与代码实际功能一致
+- **类型定义**：检查TypeScript类型定义是否完整和准确
+
+**审查输出：**
+- 指出缺少注释的关键代码段
+- 发现问题时使用 `edit_file` 或 `search_replace` 工具直接修复
+- 评估现有注释的质量和准确性
+
+**实践例子：**
+
+```typescript
+// ❌ 缺少注释和类型定义
+const calculateTotal = (items) => {
+    return items.reduce((total, item) => total + item.price, 0);
+};
+
+// ✅ 完善的注释和类型定义
+interface CartItem {
+    price: number;
+    quantity: number;
+    discount?: number;
+}
+
+/**
+ * 计算购物车总价
+ * @param items - 购物车商品列表
+ * @returns 计算后的总价格
+ * @example
+ * const total = calculateTotal([
+ *   { price: 10, quantity: 2 },
+ *   { price: 20, quantity: 1, discount: 0.1 }
+ * ]);
+ */
+const calculateTotal = (items: CartItem[]): number => {
+    return items.reduce((total, item) => {
+        const itemPrice = item.price * item.quantity;
+        const discountAmount = item.discount ? itemPrice * item.discount : 0;
+        return total + (itemPrice - discountAmount);
+    }, 0);
+};
+
+// React组件文档化
+/** 用户信息卡片组件 */
+interface UserCardProps {
+    /** 用户姓名 */
+    name: string;
+    /** 头像URL（可选） */
+    avatar?: string;
+    /** 是否在线状态 */
+    isOnline: boolean;
+}
+```
+
+### 第三步：前端标准和语义化审查
+
+**审查要点：**
+- **组件语义化**：验证React组件的职责是否单一且明确
+- **代码语义化**：确认代码逻辑是否清晰表达业务意图
+- **接口语义化**：检查API接口的命名和结构是否语义化
+- **CSS规范**：验证CSS选择器、属性使用的规范性
+- **响应式设计**：检查媒体查询和断点设置的合理性
+
+**审查输出：**
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 评估代码的可读性和维护性
+
+### 第四步：样式和兼容性审查
+
+**审查要点：**
+- **浏览器兼容性**：检查CSS属性是否需要厂商前缀，是否兼容目标浏览器
+- **变量和混合宏**：检查是否合理使用CSS变量和混合宏
+- **CSS模块化**：验证CSS模块化实现和类名冲突问题
+- **样式性能**：识别可能影响渲染性能的CSS选择器和属性
+
+**审查输出：**
+- 列出兼容性问题和解决方案
+- 发现问题时使用 `search_replace` 工具直接修复
+- 评估CSS代码质量和可维护性
+
+**实践例子：**
+
+```scss
+// ❌ 兼容性问题
+.container {
+    display: grid; // IE不支持
+    transform: rotate(45deg); // 缺少厂商前缀
+}
+
+// ✅ 兼容性优化
+.container {
+    display: block; // 降级方案
+    display: grid; // 现代浏览器
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+```
+
+### 第五步：代码逻辑验证审查
+
+**审查要点：**
+- **死循环检测**：检查for、while、递归等是否存在无限循环风险
+- **内存泄漏风险**：识别可能导致内存泄漏的代码模式（事件监听器未清理、闭包引用等）
+- **异步操作处理**：检查Promise、async/await的正确使用和错误处理
+- **状态变更逻辑**：验证React状态更新的正确性，避免直接修改state
+- **副作用控制**：检查useEffect依赖项和清理函数的正确使用
+- **条件判断完整性**：确认所有条件分支都有适当的处理逻辑
+
+**审查输出：**
+- 识别潜在的逻辑错误和运行时风险
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 标记需要重点测试的逻辑分支
+
+**实践例子：**
+
+```typescript
+// ❌ 死循环和逻辑问题
+const findUser = (users: User[], targetId: string): User | null => {
+    let i = 0;
+    while (i < users.length) {
+        if (users[i].id === targetId) {
+            return users[i];
+        }
+        // 忘记增加i，造成死循环
+    }
+    return null;
+};
+
+// ❌ 内存泄漏风险
+const ProblematicComponent = () => {
+    const [data, setData] = useState([]);
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData().then(setData);
+        }, 1000);
+        
+        // 缺少清理函数，导致内存泄漏
+    }, []);
+    
+    const handleClick = () => {
+        // 直接修改state
+        data.push({ id: Date.now(), name: 'New Item' });
+        setData(data);
+    };
+    
+    return <div onClick={handleClick}>...</div>;
+};
+
+// ❌ 异步操作错误处理缺失
+const fetchUserData = async (userId: string) => {
+    const response = await fetch(`/api/users/${userId}`);
+    const data = await response.json(); // 没有错误处理
+    return data;
+};
+
+// ✅ 改进后的代码
+const findUser = (users: User[], targetId: string): User | null => {
+    // 使用for循环或Array.find()避免手动控制循环变量
+    return users.find(user => user.id === targetId) || null;
+};
+
+// ✅ 正确的内存管理
+const ImprovedComponent = () => {
+    const [data, setData] = useState<Item[]>([]);
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData().then(setData);
+        }, 1000);
+        
+        // 清理函数防止内存泄漏
+        return () => clearInterval(interval);
+    }, []);
+    
+    const handleClick = useCallback(() => {
+        // 正确的state更新方式
+        setData(prevData => [...prevData, { 
+            id: Date.now(), 
+            name: 'New Item' 
+        }]);
+    }, []);
+    
+    return <div onClick={handleClick}>...</div>;
+};
+
+// ✅ 完善的异步错误处理
+const fetchUserData = async (userId: string): Promise<User | null> => {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        return null;
+    }
+};
+
+// ✅ 递归函数的安全限制
+const traverseTree = (node: TreeNode, depth = 0): void => {
+    // 防止栈溢出的深度限制
+    if (depth > 1000) {
+        console.warn('Maximum depth reached');
+        return;
+    }
+    
+    // 处理节点
+    processNode(node);
+    
+    // 递归处理子节点
+    node.children?.forEach(child => 
+        traverseTree(child, depth + 1)
+    );
+};
+```
+
+### 第六步：性能和内存审查
+
+**审查要点：**
+- **渲染性能**：检查不必要的组件重渲染和昂贵的计算
+- **内存使用**：识别内存占用过高的数据结构和操作
+- **资源加载**：审查图片、字体、第三方库的加载策略
+- **代码分割**：验证是否合理使用懒加载和代码分割
+- **缓存策略**：检查数据缓存和计算结果缓存的实现
+- **DOM操作优化**：识别频繁的DOM查询和操作
+- **网络请求优化**：检查API调用的合理性和优化空间
+
+**审查输出：**
+- 识别性能瓶颈和优化机会
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 评估内存使用效率
+
+**实践例子：**
+
+```typescript
+// ❌ 性能问题
+const Component = ({ items }) => {
+    return (
+        <div>
+            {/* 内联函数导致重渲染 */}
+            <button onClick={() => console.log('click')}>按钮</button>
+            {/* render中昂贵计算 */}
+            {items.sort().map(item => <div key={item.id}>{item.name}</div>)}
+        </div>
+    );
+};
+
+// ✅ 性能优化
+const Component = ({ items }) => {
+    const handleClick = useCallback(() => console.log('click'), []);
+    const sortedItems = useMemo(() => items.sort(), [items]);
+    
+    return (
+        <div>
+            <button onClick={handleClick}>按钮</button>
+            {sortedItems.map(item => <div key={item.id}>{item.name}</div>)}
+        </div>
+    );
+};
+```
+
+
+### 第七步：综合质量评估
+
+**审查要点：**
+- **代码复杂度**：评估函数和组件的复杂度是否合理
+- **重复代码**：识别可以抽取复用的重复代码
+- **代码复用**：合理的组件拆分和Hook抽象
+- **类型安全**：完整的TypeScript接口定义，避免any类型
+- **性能考量**：检查是否存在性能问题和优化空间
+- **安全性**：验证是否存在潜在的安全风险
+- **可维护性**：评估代码的可维护性和扩展性
+
+**审查输出：**
+- 提供整体代码质量评分
+- 发现问题时使用 `edit_file` 或 `search_replace` 工具直接修复
+- 给出重构建议和最佳实践指导
+## 审查报告格式
+
+每次审查后将提供以下格式的报告：
+
+```markdown
+## 代码审查报告
+
+### 📋 审查范围
+- 文件路径：[具体文件路径]
+- 审查行数：[起始行-结束行]
+- 审查时间：[时间戳]
+
+### 🔍 发现的问题
+
+#### 🏷️ 命名规则问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+#### 💬 注释问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+#### 🎯 语义化问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+#### 🎨 样式兼容性问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+#### ⚠️ 代码逻辑问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+#### ⚡ 性能和内存问题
+- [具体问题描述]
+- 建议：[改进建议]
+
+### ⭐ 整体评分
+- 基础规范：[评分]/10
+- 注释文档：[评分]/10
+- 前端标准：[评分]/10
+- 样式兼容性：[评分]/10
+- 代码逻辑：[评分]/10
+- 性能内存：[评分]/10
+- 总体质量：[评分]/10
+
+### 🚀 改进优先级
+1. [高优先级问题]
+2. [中优先级问题]
+3. [低优先级问题]
+
+### 💡 最佳实践建议
+- [具体建议1]
+- [具体建议2]
+- [具体建议3]
+```
+
+## 使用说明
+
+1. 选择需要审查的代码范围
+2. 触发此规则进行代码审查（手动模式）
+3. 系统将按照上述七个步骤依次进行审查
+4. 生成详细的审查报告和改进建议
+5. 根据优先级逐步改进代码质量
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 1. 使用 `search_replace` 工具处理精确替换
+
+```typescript
+// 当发现明确的代码问题时，使用search_replace工具
+search_replace({
+  file_path: "src/components/UserCard.tsx",
+  old_string: `const UserCard = (props: any) => {
+    return <div className="user_card">{props.name}</div>;
+  };`,
+  new_string: `interface UserCardProps {
+    name: string;
+  }
+  
+  const UserCard: React.FC<UserCardProps> = ({ name }) => {
+    return <div className="user-card">{name}</div>;
+  };`
+});
+```
+
+#### 2. 使用 `edit_file` 工具处理复杂修改
+
+```typescript
+// 当需要大幅度重构或添加新功能时，使用edit_file工具
+edit_file({
+  target_file: "src/hooks/useUserData.ts",
+  instructions: "重构useUserData钩子，添加错误处理和类型安全",
+  code_edit: `// ... existing code ...
+  
+  // 添加错误处理和类型定义
+  interface User {
+    id: string;
+    name: string;
+    email: string;
+  }
+  
+  interface UseUserDataResult {
+    user: User | null;
+    loading: boolean;
+    error: string | null;
+  }
+  
+  export const useUserData = (userId: string): UseUserDataResult => {
+    // ... existing code ...
+    
+    // 新增的错误处理逻辑
+    const [error, setError] = useState<string | null>(null);
+    
+    // ... existing code ...
+  `
+});
+```
+
+#### 3. 修改建议的必要条件
+
+**必须提供修改建议的情况：**
+- ❌ 存在性能问题（内存泄漏、无限循环等）
+- ❌ 类型安全问题（使用any类型、缺少类型定义）
+- ❌ 明显的代码缺陷（错误的逻辑、未处理的异常）
+
+**可选提供修改建议的情况：**
+- ⚠️ 命名规范问题
+- ⚠️ 注释不完整
+- ⚠️ 代码风格不一致
+
+#### 4. 修改建议格式规范
+
+```markdown
+### 🔧 立即修改建议
+
+**问题描述：** [具体问题]
+**风险等级：** 高/中/低
+**影响范围：** [影响的功能模块]
+
+**修改方案：**
+[使用search_replace或edit_file工具的具体代码]
+
+**修改理由：**
+- 原因1：[具体说明]
+- 原因2：[具体说明]
+
+**验证方法：**
+- 测试步骤1
+- 测试步骤2
+```
+
+#### 5. 工具选择标准
+
+| 工具 | 适用场景 | 特点 |
+|------|----------|------|
+| `search_replace` | 精确的文本替换 | 适合小范围、明确的修改 |
+| `edit_file` | 复杂的代码重构 | 适合大范围、结构性的修改 |
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 对于历史遗留代码，会提供渐进式改进方案
+- 审查结果将有助于提升团队整体代码质量和开发效率
+- 此规则为手动触发模式，不会自动应用到所有文件
