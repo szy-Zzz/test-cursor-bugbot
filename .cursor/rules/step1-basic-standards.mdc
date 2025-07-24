@@ -1,0 +1,85 @@
+---
+alwaysApply: false
+---
+# 基础代码规范审查
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行基础代码规范审查。
+
+## 审查要点
+
+**审查要点：**
+- **变量命名**：检查变量名是否使用camelCase命名法，是否具有语义化和描述性
+- **函数命名**：验证函数名是否清晰表达其功能，是否遵循动词+名词的模式
+- **组件命名**：确认React组件是否使用PascalCase命名，文件名是否遵循kebab-case
+- **常量命名**：检查常量是否使用UPPER_SNAKE_CASE命名法
+- **文件命名**：验证文件命名是否遵循项目约定（组件文件夹中使用index.tsx/index.less）
+- **类名命名**：检查是否遵循BEM命名规范，类名是否语义化和一致性
+- **代码格式**：验证代码缩进、空格、分号等格式规范
+
+**审查输出：**
+- 列出所有不符合命名和格式规范的项目
+- 发现问题时使用 `search_replace` 工具直接修复
+- 评估整体代码规范程度
+
+**重要规定：**
+- 🚨 **只专注于基础代码规范审查要点**，不要处理其他类型的问题（如性能、逻辑、注释等）
+- 仅审查和修复变量命名、函数命名、组件命名、常量命名、文件命名、类名命名、代码格式等规范问题
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可
+
+**实践例子：**
+
+```typescript
+// ❌ 问题代码
+function processArray(arr, x, y) {
+    return arr.slice(x, y).map((item) => item * 2);
+}
+
+const UserCard = (props: any) => {
+    return <div className="user_card">{props.name}</div>;
+};
+
+// ✅ 改进后
+function processArrayDoubleValues(arr: number[], startIndex: number, endIndex: number): number[] {
+    // 提取数组片段并将每个元素乘以2
+    return arr.slice(startIndex, endIndex).map((item) => item * 2);
+}
+
+interface UserCardProps {
+    name: string;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ name }) => {
+    return <div className="user-card">{name}</div>;
+};
+```
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 使用 `search_replace` 工具处理精确替换
+
+```typescript
+// 当发现明确的代码问题时，使用search_replace工具
+search_replace({
+  file_path: "src/components/UserCard.tsx",
+  old_string: `const UserCard = (props: any) => {
+    return <div className="user_card">{props.name}</div>;
+  };`,
+  new_string: `interface UserCardProps {
+    name: string;
+  }
+  
+  const UserCard: React.FC<UserCardProps> = ({ name }) => {
+    return <div className="user-card">{name}</div>;
+  };`
+});
+```
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 此规则为手动触发模式，不会自动应用到所有文件

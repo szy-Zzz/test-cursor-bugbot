@@ -1,0 +1,268 @@
+---
+alwaysApply: false
+---
+# 代码逻辑验证审查
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行代码逻辑验证审查。
+
+## 审查要点
+
+**审查要点：**
+- **死循环检测**：检查for、while、递归等是否存在无限循环风险
+- **内存泄漏风险**：识别可能导致内存泄漏的代码模式（事件监听器未清理、闭包引用等）
+- **对象引用共享错误**：检查是否存在多个变量指向同一对象引用的问题，特别关注以下模式：
+  - reduce初始值中同一对象被多次引用
+  - 变量赋值时直接使用同一对象引用
+  - 对象字面量在循环中被复用
+  - 初始化状态时多个属性指向同一对象
+- **异步操作处理**：检查Promise、async/await的正确使用和错误处理
+- **状态变更逻辑**：验证React状态更新的正确性，避免直接修改state
+- **副作用控制**：检查useEffect依赖项和清理函数的正确使用
+- **条件判断完整性**：确认所有条件分支都有适当的处理逻辑
+
+**审查输出：**
+- 识别潜在的逻辑错误和运行时风险
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 标记需要重点测试的逻辑分支
+
+**重要规定：**
+- 🚨 **只专注于代码逻辑验证审查要点**，不要处理其他类型的问题（如性能、命名规范、注释等）
+- 仅审查和修复死循环检测、内存泄漏风险、对象引用共享错误、异步操作处理、状态变更逻辑、副作用控制、条件判断完整性等逻辑问题
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可
+
+## 实践例子
+
+```typescript
+// ❌ 死循环和逻辑问题
+const findUser = (users: User[], targetId: string): User | null => {
+    let i = 0;
+    while (i < users.length) {
+        if (users[i].id === targetId) {
+            return users[i];
+        }
+        // 忘记增加i，造成死循环
+    }
+    return null;
+};
+
+// ❌ 内存泄漏风险
+const ProblematicComponent = () => {
+    const [data, setData] = useState([]);
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData().then(setData);
+        }, 1000);
+        
+        // 缺少清理函数，导致内存泄漏
+    }, []);
+    
+    const handleClick = () => {
+        // 直接修改state
+        data.push({ id: Date.now(), name: 'New Item' });
+        setData(data);
+    };
+    
+    return <div onClick={handleClick}>...</div>;
+};
+
+// ❌ 对象引用共享错误
+const processStatistics = () => {
+    const baseObj = { count: 0, total: 0 };
+    const result = ['success', 'error', 'pending'].reduce(
+        (acc, status) => {
+            // 错误：所有状态都指向同一个对象引用
+            acc[status] = baseObj;
+            return acc;
+        },
+        {} as Record<string, typeof baseObj>
+    );
+    
+    // 修改任何一个状态都会影响其他状态
+    result.success.count = 10; // 这会同时修改error和pending的count
+    return result;
+};
+
+// ❌ 另一个常见的对象引用错误
+const initializeCounters = () => {
+    const initialState = { value: 0 };
+    return {
+        normal: initialState,
+        special: initialState, // 错误：两个属性指向同一对象
+    };
+};
+
+// ❌ 异步操作错误处理缺失
+const fetchUserData = async (userId: string) => {
+    const response = await fetch(`/api/users/${userId}`);
+    const data = await response.json(); // 没有错误处理
+    return data;
+};
+
+// ✅ 改进后的代码
+const findUser = (users: User[], targetId: string): User | null => {
+    // 使用for循环或Array.find()避免手动控制循环变量
+    return users.find(user => user.id === targetId) || null;
+};
+
+// ✅ 正确的内存管理
+const ImprovedComponent = () => {
+    const [data, setData] = useState<Item[]>([]);
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData().then(setData);
+        }, 1000);
+        
+        // 清理函数防止内存泄漏
+        return () => clearInterval(interval);
+    }, []);
+    
+    const handleClick = useCallback(() => {
+        // 正确的state更新方式
+        setData(prevData => [...prevData, { 
+            id: Date.now(), 
+            name: 'New Item' 
+        }]);
+    }, []);
+    
+    return <div onClick={handleClick}>...</div>;
+};
+
+// ✅ 修复对象引用共享错误
+const processStatistics = () => {
+    const result = ['success', 'error', 'pending'].reduce(
+        (acc, status) => {
+            // 正确：为每个状态创建独立的对象
+            acc[status] = { count: 0, total: 0 };
+            return acc;
+        },
+        {} as Record<string, { count: number; total: number }>
+    );
+    
+    // 现在修改一个状态不会影响其他状态
+    result.success.count = 10;
+    return result;
+};
+
+// ✅ 正确的对象初始化
+const initializeCounters = () => {
+    return {
+        normal: { value: 0 }, // 每个属性都有独立的对象
+        special: { value: 0 },
+    };
+};
+
+// ✅ 使用工厂函数确保对象独立性
+const createInitialState = () => ({ value: 0 });
+
+const initializeCountersWithFactory = () => {
+    return {
+        normal: createInitialState(),
+        special: createInitialState(),
+    };
+};
+
+// ✅ 在reduce中使用展开运算符创建新对象
+const mergeStatistics = (dataList: Array<{ a: number; b: number }>) => {
+    return dataList.reduce(
+        (acc, item) => {
+            const key = Math.random() > 0.5 ? 'normal' : 'redo';
+            // 使用展开运算符创建新对象，避免引用共享
+            acc[key] = {
+                ...acc[key],
+                a: acc[key].a + item.a,
+                b: acc[key].b + item.b,
+            };
+            return acc;
+        },
+        { 
+            normal: { a: 0, b: 0 }, 
+            redo: { a: 0, b: 0 } 
+        }
+    );
+};
+
+// ✅ 完善的异步错误处理
+const fetchUserData = async (userId: string): Promise<User | null> => {
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        return null;
+    }
+};
+
+// ✅ 递归函数的安全限制
+const traverseTree = (node: TreeNode, depth = 0): void => {
+    // 防止栈溢出的深度限制
+    if (depth > 1000) {
+        console.warn('Maximum depth reached');
+        return;
+    }
+    
+    // 处理节点
+    processNode(node);
+    
+    // 递归处理子节点
+    node.children?.forEach(child => 
+        traverseTree(child, depth + 1)
+    );
+};
+```
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 修改建议的必要条件
+
+**必须提供修改建议的情况：**
+- ❌ 存在性能问题（内存泄漏、无限循环等）
+- ❌ 类型安全问题（使用any类型、缺少类型定义）
+- ❌ 明显的代码缺陷（错误的逻辑、未处理的异常）
+- ❌ 对象引用共享错误（多个变量指向同一对象引用，特别是在reduce、初始化对象时）
+
+#### 修改建议格式规范
+
+```markdown
+### 🔧 立即修改建议
+
+**问题描述：** [具体问题]
+**风险等级：** 高/中/低
+**影响范围：** [影响的功能模块]
+
+**修改方案：**
+[使用search_replace或edit_file工具的具体代码]
+
+**修改理由：**
+- 原因1：[具体说明]
+- 原因2：[具体说明]
+
+**验证方法：**
+- 测试步骤1
+- 测试步骤2
+```
+
+#### 工具选择标准
+
+| 工具 | 适用场景 | 特点 |
+|------|----------|------|
+| `search_replace` | 精确的文本替换 | 适合小范围、明确的修改 |
+| `edit_file` | 复杂的代码重构 | 适合大范围、结构性的修改 |
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 对于历史遗留代码，会提供渐进式改进方案
+- 此规则为手动触发模式，不会自动应用到所有文件

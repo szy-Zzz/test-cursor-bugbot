@@ -1,0 +1,291 @@
+---
+alwaysApply: false
+---
+# 前端标准、语义化和样式兼容性审查
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行前端标准、语义化和样式兼容性审查。审查过程将按照以下步骤进行。
+
+## 第一步：前端标准和语义化审查
+
+### 审查要点
+
+**审查要点：**
+- **组件语义化**：验证React组件的职责是否单一且明确
+- **代码语义化**：确认代码逻辑是否清晰表达业务意图
+- **接口语义化**：检查API接口的命名和结构是否语义化
+- **CSS规范**：验证CSS选择器、属性使用的规范性
+- **响应式设计**：检查媒体查询和断点设置的合理性
+
+**审查输出：**
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 评估代码的可读性和维护性
+
+## 第二步：样式和兼容性审查
+
+### 审查要点
+
+**审查要点：**
+- **浏览器兼容性**：检查CSS属性是否需要厂商前缀，是否兼容目标浏览器
+- **变量和混合宏**：检查是否合理使用CSS变量和混合宏
+- **CSS模块化**：验证CSS模块化实现和类名冲突问题
+- **样式性能**：识别可能影响渲染性能的CSS选择器和属性
+
+**审查输出：**
+- 列出兼容性问题和解决方案
+- 发现问题时使用 `search_replace` 工具直接修复
+- 评估CSS代码质量和可维护性
+
+**重要规定：**
+- 🚨 **只专注于前端标准、语义化和样式兼容性审查要点**，不要处理其他类型的问题（如性能、逻辑、基础命名等）
+- 仅审查和修复组件语义化、代码语义化、接口语义化、CSS规范、响应式设计、浏览器兼容性、CSS变量使用、CSS模块化、样式性能等问题
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可
+
+## 实践例子
+
+### 前端标准和语义化示例
+
+```typescript
+// ❌ 语义化问题
+const getData = async () => {
+    const result = await fetch('/api/data');
+    return result.json();
+};
+
+const Component = () => {
+    const [state, setState] = useState(null);
+    
+    return (
+        <div>
+            <div onClick={() => setState(!state)}>Toggle</div>
+            {state && <div>Content</div>}
+        </div>
+    );
+};
+
+// ✅ 语义化改进
+const fetchUserProfile = async (userId: string): Promise<UserProfile> => {
+    const response = await fetch(`/api/users/${userId}/profile`);
+    return response.json();
+};
+
+const UserProfileToggle: React.FC<{ userProfile: UserProfile }> = ({ userProfile }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    return (
+        <section className="user-profile-section">
+            <button 
+                className="profile-toggle-button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
+            >
+                {isExpanded ? '收起' : '展开'}用户资料
+            </button>
+            {isExpanded && (
+                <div className="profile-content" role="region">
+                    <UserProfileDetails profile={userProfile} />
+                </div>
+            )}
+        </section>
+    );
+};
+```
+
+### 样式兼容性示例
+
+```scss
+// ❌ 兼容性问题
+.container {
+    display: grid; // IE不支持
+    transform: rotate(45deg); // 缺少厂商前缀
+    backdrop-filter: blur(10px); // 需要考虑兼容性
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+// ✅ 兼容性优化
+.container {
+    // 降级方案
+    display: block;
+    
+    // 现代浏览器支持
+    @supports (display: grid) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+    }
+    
+    // 厂商前缀
+    -webkit-transform: rotate(45deg);
+    -moz-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+    
+    // backdrop-filter兼容处理
+    @supports (backdrop-filter: blur(10px)) {
+        backdrop-filter: blur(10px);
+    }
+    
+    // 降级方案
+    @supports not (backdrop-filter: blur(10px)) {
+        background-color: rgba(255, 255, 255, 0.9);
+    }
+}
+
+.card {
+    border-radius: 8px;
+    
+    // 现代阴影
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 1px 2px rgba(0, 0, 0, 0.24);
+    
+    // 兼容旧版本
+    @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+        border: 1px solid #e0e0e0;
+    }
+}
+
+// CSS变量使用
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --border-radius: 4px;
+    --spacing-unit: 8px;
+}
+
+.modern-button {
+    background-color: var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+    
+    // 降级方案
+    background-color: #007bff; /* fallback */
+    border-radius: 4px; /* fallback */
+    padding: 16px 24px; /* fallback */
+}
+
+// 响应式设计
+.responsive-grid {
+    display: grid;
+    gap: var(--spacing-unit);
+    
+    // 移动端
+    grid-template-columns: 1fr;
+    
+    // 平板
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    // 桌面端
+    @media (min-width: 1024px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    // 大屏幕
+    @media (min-width: 1440px) {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+```
+
+### CSS模块化示例
+
+```scss
+// ❌ 可能的类名冲突
+.button {
+    padding: 8px 16px;
+    border: none;
+}
+
+.card .button {
+    background: blue;
+}
+
+// ✅ BEM命名规范
+.btn {
+    padding: 8px 16px;
+    border: none;
+    
+    &--primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    &--secondary {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+    
+    &--large {
+        padding: 12px 24px;
+        font-size: 1.125rem;
+    }
+    
+    &__icon {
+        margin-right: 8px;
+    }
+}
+
+.card {
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    
+    &__header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    &__body {
+        padding: 16px;
+    }
+    
+    &__footer {
+        padding: 16px;
+        background-color: var(--bg-secondary);
+    }
+}
+```
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 使用 `search_replace` 工具处理样式兼容性问题
+
+```typescript
+// 当发现样式兼容性问题时，使用search_replace工具
+search_replace({
+  file_path: "src/styles/components.scss",
+  old_string: `.container {
+    display: grid;
+    transform: rotate(45deg);
+  }`,
+  new_string: `.container {
+    display: block; // 降级方案
+    display: grid; // 现代浏览器
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+  }`
+});
+```
+
+#### 修改建议的必要条件
+
+**必须提供修改建议的情况：**
+- ❌ 存在浏览器兼容性问题
+- ❌ CSS选择器性能问题
+- ❌ 语义化不明确的组件设计
+- ❌ 缺少响应式处理
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 对于历史遗留代码，会提供渐进式改进方案
+- 此规则为手动触发模式，不会自动应用到所有文件

@@ -3,7 +3,7 @@ alwaysApply: false
 ---
 # 前端代码审查规则
 
-作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行全面、系统的代码审查。审查过程将按照以下步骤进行，确保代码质量、可维护性和最佳实践的遵循。
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行全面、系统的代码审查。审查过程将严格按照以下步骤进行，确保代码质量、可维护性和最佳实践的遵循。
 
 ## 审查步骤
 
@@ -56,9 +56,55 @@ const UserCard: React.FC<UserCardProps> = ({ name }) => {
 - **函数注释**：检查复杂函数是否有JSDoc注释，包含参数说明和返回值说明
 - **组件注释**：验证React组件是否有合适的描述注释
 - **业务逻辑注释**：确认复杂业务逻辑是否有解释性注释
+- **JSX/DOM注释**：按照以下规则验证render部分的注释完整性
 - **TODO注释**：检查是否有未完成的TODO项目并评估优先级
 - **注释准确性**：验证注释内容是否与代码实际功能一致
 - **类型定义**：检查TypeScript类型定义是否完整和准确
+
+#### JSX/DOM注释规则
+
+**必须添加注释的场景：**
+1. **主要功能区块**：具有独立业务功能的DOM容器
+2. **复杂条件渲染**：包含多层条件判断的JSX逻辑
+3. **数据循环渲染**：复杂的map/filter等数据处理和渲染
+4. **重要交互元素**：含有关键事件处理的DOM元素
+5. **业务状态显示**：反映重要业务状态的UI区域
+6. **特殊样式处理**：具有特殊CSS类或样式逻辑的元素
+
+**不需要注释的场景：**
+1. **简单标签**：单纯的div、span、p等无特殊逻辑的标签
+2. **纯样式容器**：仅用于布局和样式的wrapper容器
+3. **标准表单元素**：常规的input、button等无复杂逻辑的元素
+4. **简单文本显示**：直接显示变量值或固定文本的元素
+
+**注释格式要求：**
+- 使用 `{/* 注释内容 */}` 格式
+- 注释应简洁明了，说明该区域的业务功能
+- 对于复杂逻辑，在注释中说明实现原理
+- **特别注意：在JSX的三元表达式中，注释必须放在JSX元素内部，不能直接放在三元运算符的分支上**
+  ```jsx
+  // ❌ 错误：在三元表达式分支上添加注释会导致语法错误
+  {condition ? (
+    /* 注释 */
+    <div>内容</div>
+  ) : (
+    /* 注释 */
+    <div>其他内容</div>
+  )}
+  
+  // ✅ 正确：在JSX元素内部添加注释
+  {condition ? (
+    <div>
+      {/* 条件为真时的内容 */}
+      内容
+    </div>
+  ) : (
+    <div>
+      {/* 条件为假时的内容 */}
+      其他内容
+    </div>
+  )}
+  ```
 
 **审查输出：**
 - 指出缺少注释的关键代码段
@@ -108,6 +154,111 @@ interface UserCardProps {
     /** 是否在线状态 */
     isOnline: boolean;
 }
+
+// ❌ JSX/DOM缺少关键注释
+const TodoApp = ({ todos, filter }) => {
+    return (
+        <div className="app">
+            <header>
+                <h1>待办清单</h1>
+            </header>
+            <div className="input-section">
+                <input type="text" placeholder="添加待办..." />
+                <button onClick={addTodo}>添加</button>
+            </div>
+            <div className="filter-section">
+                {['all', 'active', 'completed'].map(filterType => (
+                    <button 
+                        key={filterType}
+                        className={`filter-btn ${filter === filterType ? 'active' : ''}`}
+                        onClick={() => setFilter(filterType)}
+                    >
+                        {filterType}
+                    </button>
+                ))}
+            </div>
+            <div className="todos-container">
+                {filteredTodos.length === 0 ? (
+                    <div className="empty-state">
+                        <p>暂无待办事项</p>
+                    </div>
+                ) : (
+                    <ul>
+                        {filteredTodos.map(todo => (
+                            <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+                                <input 
+                                    type="checkbox"
+                                    checked={todo.completed}
+                                    onChange={() => toggleTodo(todo.id)}
+                                />
+                                <span>{todo.text}</span>
+                                <button onClick={() => deleteTodo(todo.id)}>删除</button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ✅ JSX/DOM完善注释示例
+const TodoApp = ({ todos, filter }) => {
+    return (
+        <div className="app">
+            {/* 应用头部区域 */}
+            <header>
+                <h1>待办清单</h1>
+            </header>
+            
+            {/* 新增待办事项输入区域 */}
+            <div className="input-section">
+                <input type="text" placeholder="添加待办..." />
+                <button onClick={addTodo}>添加</button>
+            </div>
+            
+            {/* 过滤器按钮组 - 支持全部/活跃/已完成三种过滤状态 */}
+            <div className="filter-section">
+                {['all', 'active', 'completed'].map(filterType => (
+                    <button 
+                        key={filterType}
+                        className={`filter-btn ${filter === filterType ? 'active' : ''}`}
+                        onClick={() => setFilter(filterType)}
+                    >
+                        {filterType}
+                    </button>
+                ))}
+            </div>
+            
+            {/* 待办事项列表容器 - 根据过滤条件显示不同内容 */}
+            <div className="todos-container">
+                {filteredTodos.length === 0 ? (
+                    <div className="empty-state">
+                        {/* 空状态提示 */}
+                        <p>暂无待办事项</p>
+                    </div>
+                ) : (
+                    <ul>
+                        {/* 待办事项列表 - 支持切换完成状态和删除操作 */}
+                        {filteredTodos.map(todo => (
+                            <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+                                {/* 完成状态切换复选框 */}
+                                <input 
+                                    type="checkbox"
+                                    checked={todo.completed}
+                                    onChange={() => toggleTodo(todo.id)}
+                                />
+                                <span>{todo.text}</span>
+                                {/* 删除按钮 */}
+                                <button onClick={() => deleteTodo(todo.id)}>删除</button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
 ```
 
 ### 第三步：前端标准和语义化审查
@@ -444,6 +595,10 @@ const Component = ({ items }) => {
 - [具体问题描述]
 - 建议：[改进建议]
 
+#### 🔖 JSX/DOM注释问题
+- [具体问题描述]
+- 建议：[改进建议]
+
 #### 🎯 语义化问题
 - [具体问题描述]
 - 建议：[改进建议]
@@ -598,3 +753,7 @@ edit_file({
 - 对于历史遗留代码，会提供渐进式改进方案
 - 审查结果将有助于提升团队整体代码质量和开发效率
 - 此规则为手动触发模式，不会自动应用到所有文件
+
+## 重要规定
+
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可

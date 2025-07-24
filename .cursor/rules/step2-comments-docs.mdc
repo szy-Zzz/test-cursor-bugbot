@@ -1,0 +1,267 @@
+---
+alwaysApply: false
+---
+# 注释和文档审查
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行注释和文档审查。
+
+## 审查要点
+
+**审查要点：**
+- **函数注释**：检查复杂函数是否有JSDoc注释，包含参数说明和返回值说明
+- **组件注释**：验证React组件是否有合适的描述注释
+- **业务逻辑注释**：确认复杂业务逻辑是否有解释性注释
+- **JSX/DOM注释**：按照以下规则验证render部分的注释完整性
+- **TODO注释**：检查是否有未完成的TODO项目并评估优先级
+- **注释准确性**：验证注释内容是否与代码实际功能一致
+- **类型定义**：检查TypeScript类型定义是否完整和准确
+
+## JSX/DOM注释规则
+
+**必须添加注释的场景：**
+1. **主要功能区块**：具有独立业务功能的DOM容器
+2. **复杂条件渲染**：包含多层条件判断的JSX逻辑
+3. **数据循环渲染**：复杂的map/filter等数据处理和渲染
+4. **重要交互元素**：含有关键事件处理的DOM元素
+5. **业务状态显示**：反映重要业务状态的UI区域
+6. **特殊样式处理**：具有特殊CSS类或样式逻辑的元素
+
+**不需要注释的场景：**
+1. **简单标签**：单纯的div、span、p等无特殊逻辑的标签
+2. **纯样式容器**：仅用于布局和样式的wrapper容器
+3. **标准表单元素**：常规的input、button等无复杂逻辑的元素
+4. **简单文本显示**：直接显示变量值或固定文本的元素
+
+**注释格式要求：**
+- 使用 `{/* 注释内容 */}` 格式
+- 注释应简洁明了，说明该区域的业务功能
+- 对于复杂逻辑，在注释中说明实现原理
+- **特别注意：在JSX的三元表达式中，注释必须放在JSX元素内部，不能直接放在三元运算符的分支上**
+  ```jsx
+  // ❌ 错误：在三元表达式分支上添加注释会导致语法错误
+  {condition ? (
+    /* 注释 */
+    <div>内容</div>
+  ) : (
+    /* 注释 */
+    <div>其他内容</div>
+  )}
+  
+  // ✅ 正确：在JSX元素内部添加注释
+  {condition ? (
+    <div>
+      {/* 条件为真时的内容 */}
+      内容
+    </div>
+  ) : (
+    <div>
+      {/* 条件为假时的内容 */}
+      其他内容
+    </div>
+  )}
+  ```
+
+**审查输出：**
+- 指出缺少注释的关键代码段
+- 发现问题时使用 `edit_file` 或 `search_replace` 工具直接修复
+- 评估现有注释的质量和准确性
+
+**重要规定：**
+- 🚨 **只专注于注释和文档审查要点**，不要处理其他类型的问题（如性能、逻辑、代码规范等）
+- 仅审查和修复函数注释、组件注释、业务逻辑注释、JSX/DOM注释、TODO注释、注释准确性、类型定义等文档问题
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可
+
+## 实践例子
+
+```typescript
+// ❌ 缺少注释和类型定义
+const calculateTotal = (items) => {
+    return items.reduce((total, item) => total + item.price, 0);
+};
+
+// ✅ 完善的注释和类型定义
+interface CartItem {
+    price: number;
+    quantity: number;
+    discount?: number;
+}
+
+/**
+ * 计算购物车总价
+ * @param items - 购物车商品列表
+ * @returns 计算后的总价格
+ * @example
+ * const total = calculateTotal([
+ *   { price: 10, quantity: 2 },
+ *   { price: 20, quantity: 1, discount: 0.1 }
+ * ]);
+ */
+const calculateTotal = (items: CartItem[]): number => {
+    return items.reduce((total, item) => {
+        const itemPrice = item.price * item.quantity;
+        const discountAmount = item.discount ? itemPrice * item.discount : 0;
+        return total + (itemPrice - discountAmount);
+    }, 0);
+};
+
+// React组件文档化
+/** 用户信息卡片组件 */
+interface UserCardProps {
+    /** 用户姓名 */
+    name: string;
+    /** 头像URL（可选） */
+    avatar?: string;
+    /** 是否在线状态 */
+    isOnline: boolean;
+}
+
+// ❌ JSX/DOM缺少关键注释
+const TodoApp = ({ todos, filter }) => {
+    return (
+        <div className="app">
+            <header>
+                <h1>待办清单</h1>
+            </header>
+            <div className="input-section">
+                <input type="text" placeholder="添加待办..." />
+                <button onClick={addTodo}>添加</button>
+            </div>
+            <div className="filter-section">
+                {['all', 'active', 'completed'].map(filterType => (
+                    <button 
+                        key={filterType}
+                        className={`filter-btn ${filter === filterType ? 'active' : ''}`}
+                        onClick={() => setFilter(filterType)}
+                    >
+                        {filterType}
+                    </button>
+                ))}
+            </div>
+            <div className="todos-container">
+                {filteredTodos.length === 0 ? (
+                    <div className="empty-state">
+                        <p>暂无待办事项</p>
+                    </div>
+                ) : (
+                    <ul>
+                        {filteredTodos.map(todo => (
+                            <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+                                <input 
+                                    type="checkbox"
+                                    checked={todo.completed}
+                                    onChange={() => toggleTodo(todo.id)}
+                                />
+                                <span>{todo.text}</span>
+                                <button onClick={() => deleteTodo(todo.id)}>删除</button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ✅ JSX/DOM完善注释示例
+const TodoApp = ({ todos, filter }) => {
+    return (
+        <div className="app">
+            {/* 应用头部区域 */}
+            <header>
+                <h1>待办清单</h1>
+            </header>
+            
+            {/* 新增待办事项输入区域 */}
+            <div className="input-section">
+                <input type="text" placeholder="添加待办..." />
+                <button onClick={addTodo}>添加</button>
+            </div>
+            
+            {/* 过滤器按钮组 - 支持全部/活跃/已完成三种过滤状态 */}
+            <div className="filter-section">
+                {['all', 'active', 'completed'].map(filterType => (
+                    <button 
+                        key={filterType}
+                        className={`filter-btn ${filter === filterType ? 'active' : ''}`}
+                        onClick={() => setFilter(filterType)}
+                    >
+                        {filterType}
+                    </button>
+                ))}
+            </div>
+            
+            {/* 待办事项列表容器 - 根据过滤条件显示不同内容 */}
+            <div className="todos-container">
+                {filteredTodos.length === 0 ? (
+                    <div className="empty-state">
+                        {/* 空状态提示 */}
+                        <p>暂无待办事项</p>
+                    </div>
+                ) : (
+                    <ul>
+                        {/* 待办事项列表 - 支持切换完成状态和删除操作 */}
+                        {filteredTodos.map(todo => (
+                            <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+                                {/* 完成状态切换复选框 */}
+                                <input 
+                                    type="checkbox"
+                                    checked={todo.completed}
+                                    onChange={() => toggleTodo(todo.id)}
+                                />
+                                <span>{todo.text}</span>
+                                {/* 删除按钮 */}
+                                <button onClick={() => deleteTodo(todo.id)}>删除</button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+};
+```
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 使用 `edit_file` 工具处理复杂修改
+
+```typescript
+// 当需要大幅度重构或添加新功能时，使用edit_file工具
+edit_file({
+  target_file: "src/hooks/useUserData.ts",
+  instructions: "重构useUserData钩子，添加错误处理和类型安全",
+  code_edit: `// ... existing code ...
+  
+  // 添加错误处理和类型定义
+  interface User {
+    id: string;
+    name: string;
+    email: string;
+  }
+  
+  interface UseUserDataResult {
+    user: User | null;
+    loading: boolean;
+    error: string | null;
+  }
+  
+  export const useUserData = (userId: string): UseUserDataResult => {
+    // ... existing code ...
+    
+    // 新增的错误处理逻辑
+    const [error, setError] = useState<string | null>(null);
+    
+    // ... existing code ...
+  `
+});
+```
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 此规则为手动触发模式，不会自动应用到所有文件

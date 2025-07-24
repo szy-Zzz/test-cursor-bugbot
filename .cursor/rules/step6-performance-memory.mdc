@@ -1,0 +1,402 @@
+---
+alwaysApply: false
+---
+# 性能和内存审查
+
+作为一名专业的高级web前端开发技术人员，对用户指定的代码范围进行性能和内存审查。
+
+## 审查要点
+
+**审查要点：**
+- **渲染性能**：检查不必要的组件重渲染和昂贵的计算
+- **内存使用**：识别内存占用过高的数据结构和操作
+- **资源加载**：审查图片、字体、第三方库的加载策略
+- **代码分割**：验证是否合理使用懒加载和代码分割
+- **缓存策略**：检查数据缓存和计算结果缓存的实现
+- **DOM操作优化**：识别频繁的DOM查询和操作
+- **网络请求优化**：检查API调用的合理性和优化空间
+
+**审查输出：**
+- 识别性能瓶颈和优化机会
+- 发现问题时使用 `search_replace` 或 `edit_file` 工具直接修复
+- 评估内存使用效率
+
+**重要规定：**
+- 🚨 **只专注于性能和内存审查要点**，不要处理其他类型的问题（如命名规范、注释、基础逻辑等）
+- 仅审查和修复渲染性能、内存使用、资源加载、代码分割、缓存策略、DOM操作优化、网络请求优化等性能问题
+- 🚫 **完成审查和修复后，不要启动项目来验证**，仅提供审查报告即可
+
+## 实践例子
+
+```typescript
+// ❌ 性能问题
+const Component = ({ items }) => {
+    return (
+        <div>
+            {/* 内联函数导致重渲染 */}
+            <button onClick={() => console.log('click')}>按钮</button>
+            {/* render中昂贵计算 */}
+            {items.sort().map(item => <div key={item.id}>{item.name}</div>)}
+        </div>
+    );
+};
+
+// ❌ 内存泄漏和性能问题
+const ProblematicDataProcessor = ({ data }) => {
+    // 每次render都创建新的数组，导致内存浪费
+    const processedData = data.map(item => ({
+        ...item,
+        computed: expensiveCalculation(item)
+    }));
+
+    // 未优化的事件监听器
+    useEffect(() => {
+        const handleScroll = () => {
+            // 频繁的DOM操作
+            document.querySelectorAll('.item').forEach(el => {
+                el.style.opacity = window.scrollY > 100 ? '0.5' : '1';
+            });
+        };
+        
+        window.addEventListener('scroll', handleScroll);
+        // 缺少清理和节流
+    }, []);
+
+    return (
+        <div>
+            {processedData.map(item => (
+                <div key={item.id} className="item">
+                    {/* 每个item都有内联样式，性能差 */}
+                    <span style={{ color: item.isActive ? 'red' : 'black' }}>
+                        {item.name}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// ❌ 网络请求性能问题
+const UserList = () => {
+    const [users, setUsers] = useState([]);
+    
+    useEffect(() => {
+        // 每次组件挂载都重新获取数据，没有缓存
+        fetch('/api/users')
+            .then(res => res.json())
+            .then(setUsers);
+    }, []);
+    
+    const handleUserClick = (userId) => {
+        // 每次点击都发送请求，没有缓存
+        fetch(`/api/users/${userId}/details`)
+            .then(res => res.json())
+            .then(data => console.log(data));
+    };
+    
+    return (
+        <div>
+            {users.map(user => (
+                <div key={user.id} onClick={() => handleUserClick(user.id)}>
+                    {user.name}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+// ✅ 性能优化后的代码
+const OptimizedComponent = ({ items }) => {
+    // 使用useCallback缓存事件处理器
+    const handleClick = useCallback(() => console.log('click'), []);
+    
+    // 使用useMemo缓存昂贵计算
+    const sortedItems = useMemo(() => {
+        return items.sort((a, b) => a.name.localeCompare(b.name));
+    }, [items]);
+    
+    return (
+        <div>
+            <button onClick={handleClick}>按钮</button>
+            {sortedItems.map(item => (
+                <MemoizedItem key={item.id} item={item} />
+            ))}
+        </div>
+    );
+};
+
+// 使用React.memo避免不必要的重渲染
+const MemoizedItem = React.memo(({ item }) => (
+    <div className={`item ${item.isActive ? 'active' : ''}`}>
+        {item.name}
+    </div>
+));
+
+// ✅ 优化的数据处理和事件监听
+const OptimizedDataProcessor = ({ data }) => {
+    // 使用useMemo缓存昂贵计算
+    const processedData = useMemo(() => {
+        return data.map(item => ({
+            ...item,
+            computed: expensiveCalculation(item)
+        }));
+    }, [data]);
+
+    // 使用节流优化滚动事件
+    useEffect(() => {
+        const handleScroll = throttle(() => {
+            const opacity = window.scrollY > 100 ? '0.5' : '1';
+            // 使用CSS变量而不是直接操作DOM
+            document.documentElement.style.setProperty('--scroll-opacity', opacity);
+        }, 16); // 60fps
+        
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
+    return (
+        <div style={{ '--scroll-opacity': '1' } as React.CSSProperties}>
+            {processedData.map(item => (
+                <OptimizedItem key={item.id} item={item} />
+            ))}
+        </div>
+    );
+};
+
+// 使用CSS类而不是内联样式
+const OptimizedItem = React.memo(({ item }) => (
+    <div className={`item ${item.isActive ? 'item--active' : ''}`}>
+        {item.name}
+    </div>
+));
+
+// ✅ 优化的网络请求和缓存
+const OptimizedUserList = () => {
+    const [users, setUsers] = useState([]);
+    const [userDetails, setUserDetails] = useState(new Map());
+    
+    // 使用自定义Hook缓存用户列表
+    const { data: cachedUsers, isLoading } = useQuery(
+        'users',
+        () => fetch('/api/users').then(res => res.json()),
+        {
+            staleTime: 5 * 60 * 1000, // 5分钟缓存
+            cacheTime: 10 * 60 * 1000, // 10分钟缓存
+        }
+    );
+    
+    const handleUserClick = useCallback(async (userId) => {
+        // 检查本地缓存
+        if (userDetails.has(userId)) {
+            console.log(userDetails.get(userId));
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/users/${userId}/details`);
+            const data = await response.json();
+            
+            // 缓存结果
+            setUserDetails(prev => new Map(prev).set(userId, data));
+            console.log(data);
+        } catch (error) {
+            console.error('Failed to fetch user details:', error);
+        }
+    }, [userDetails]);
+    
+    if (isLoading) return <div>加载中...</div>;
+    
+    return (
+        <div>
+            {cachedUsers?.map(user => (
+                <UserItem 
+                    key={user.id} 
+                    user={user} 
+                    onClick={handleUserClick}
+                />
+            ))}
+        </div>
+    );
+};
+
+// 使用React.memo和useCallback优化子组件
+const UserItem = React.memo(({ user, onClick }) => {
+    const handleClick = useCallback(() => {
+        onClick(user.id);
+    }, [user.id, onClick]);
+    
+    return (
+        <div className="user-item" onClick={handleClick}>
+            {user.name}
+        </div>
+    );
+});
+
+// ✅ 代码分割和懒加载示例
+const LazyDashboard = lazy(() => import('./Dashboard'));
+const LazyProfile = lazy(() => import('./Profile'));
+
+const App = () => {
+    return (
+        <Router>
+            <Suspense fallback={<div>加载中...</div>}>
+                <Routes>
+                    <Route path="/dashboard" element={<LazyDashboard />} />
+                    <Route path="/profile" element={<LazyProfile />} />
+                </Routes>
+            </Suspense>
+        </Router>
+    );
+};
+
+// ✅ 虚拟滚动优化大列表
+const VirtualizedList = ({ items }) => {
+    const containerRef = useRef();
+    const itemHeight = 50;
+    const containerHeight = 400;
+    const visibleItems = Math.ceil(containerHeight / itemHeight);
+    
+    const [scrollTop, setScrollTop] = useState(0);
+    
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(startIndex + visibleItems, items.length);
+    
+    const visibleData = items.slice(startIndex, endIndex);
+    
+    const handleScroll = useCallback((e) => {
+        setScrollTop(e.target.scrollTop);
+    }, []);
+    
+    return (
+        <div 
+            ref={containerRef}
+            style={{ height: containerHeight, overflow: 'auto' }}
+            onScroll={handleScroll}
+        >
+            <div style={{ height: items.length * itemHeight, position: 'relative' }}>
+                {visibleData.map((item, index) => (
+                    <div
+                        key={startIndex + index}
+                        style={{
+                            position: 'absolute',
+                            top: (startIndex + index) * itemHeight,
+                            height: itemHeight,
+                            width: '100%'
+                        }}
+                    >
+                        {item.name}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ✅ 节流和防抖工具函数
+const throttle = (func, delay) => {
+    let timeoutId;
+    let lastExecTime = 0;
+    
+    return function (...args) {
+        const currentTime = Date.now();
+        
+        if (currentTime - lastExecTime > delay) {
+            func.apply(this, args);
+            lastExecTime = currentTime;
+        } else {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func.apply(this, args);
+                lastExecTime = Date.now();
+            }, delay - (currentTime - lastExecTime));
+        }
+    };
+};
+
+const debounce = (func, delay) => {
+    let timeoutId;
+    
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+};
+```
+
+## 代码修改建议执行指南
+
+### 🛠️ 发现问题时的处理流程
+
+**对于需要立即修改的问题，必须使用工具给出具体的修改建议：**
+
+#### 性能问题修改示例
+
+```typescript
+// 使用search_replace工具修复性能问题
+search_replace({
+  file_path: "src/components/UserList.tsx",
+  old_string: `const Component = ({ items }) => {
+    return (
+        <div>
+            <button onClick={() => console.log('click')}>按钮</button>
+            {items.sort().map(item => <div key={item.id}>{item.name}</div>)}
+        </div>
+    );
+};`,
+  new_string: `const Component = ({ items }) => {
+    const handleClick = useCallback(() => console.log('click'), []);
+    const sortedItems = useMemo(() => items.sort(), [items]);
+    
+    return (
+        <div>
+            <button onClick={handleClick}>按钮</button>
+            {sortedItems.map(item => <div key={item.id}>{item.name}</div>)}
+        </div>
+    );
+};`
+});
+```
+
+#### 内存泄漏修改示例
+
+```typescript
+// 使用edit_file工具修复内存泄漏
+edit_file({
+  target_file: "src/hooks/useScrollHandler.ts",
+  instructions: "添加事件监听器清理和节流优化",
+  code_edit: `// ... existing code ...
+  
+  useEffect(() => {
+    const handleScroll = throttle(() => {
+      // 处理滚动逻辑
+    }, 16);
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // 清理函数防止内存泄漏
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+  
+  // ... existing code ...`
+});
+```
+
+#### 修改建议的必要条件
+
+**必须提供修改建议的情况：**
+- ❌ 存在明显的性能瓶颈（不必要的重渲染、昂贵计算）
+- ❌ 内存泄漏风险（未清理的事件监听器、定时器等）
+- ❌ 资源加载不合理（未使用懒加载、代码分割）
+- ❌ 网络请求优化空间（缺少缓存、重复请求）
+
+## 注意事项
+
+- 审查过程中会考虑项目的具体技术栈和业务场景
+- 建议会结合当前的前端最佳实践和行业标准
+- 性能优化应该基于实际测量结果，避免过度优化
+- 此规则为手动触发模式，不会自动应用到所有文件
