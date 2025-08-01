@@ -1,0 +1,169 @@
+---
+description: 前端开发核心规范简版，提炼最重要的编程标准、类型安全、逻辑规范和性能优化要点，适用于快速代码质量检查和编程指导
+alwaysApply: false
+---
+# 前端开发核心规范（简版）
+
+## 📏 基础规范
+
+### 命名约定
+- 变量/函数：`camelCase`
+- 组件：`PascalCase` 
+- 常量：`UPPER_SNAKE_CASE`
+- CSS类名：`camelCase`
+
+### TypeScript类型安全
+- 避免使用`any`类型
+- 函数参数和返回值需定义类型
+- React组件需定义Props接口
+
+```typescript
+// ✅ 推荐
+interface UserProps {
+  user: { id: string; name: string };
+}
+const UserCard: React.FC<UserProps> = ({ user }) => { ... };
+
+// ❌ 避免
+const userCard = (props: any) => { ... };
+```
+
+## 💬 注释要求
+
+- 复杂函数添加JSDoc注释
+- 主要JSX区块添加描述性注释
+- 业务逻辑添加解释性注释
+
+```typescript
+/**
+ * 计算总价
+ * @param items - 商品列表
+ * @returns 总价格
+ */
+const calculateTotal = (items: Item[]): number => { ... };
+```
+
+## ⚠️ 关键逻辑
+
+### 避免对象引用共享
+```typescript
+// ❌ 错误
+const state = { count: 0 };
+const counters = { success: state, error: state };
+
+// ✅ 正确  
+const counters = { success: { count: 0 }, error: { count: 0 } };
+```
+
+### 异步操作安全
+```typescript
+// ✅ 错误处理
+const fetchData = async (): Promise<Data | null> => {
+  try {
+    const response = await fetch('/api/data');
+    if (!response.ok) throw new Error('请求失败');
+    return await response.json();
+  } catch (error) {
+    console.error('获取数据失败:', error);
+    return null;
+  }
+};
+```
+
+### 清理副作用
+```typescript
+// ✅ 正确清理
+useEffect(() => {
+  const timer = setInterval(() => { /* ... */ }, 1000);
+  return () => clearInterval(timer);
+}, []);
+```
+
+## 🎨 UI和样式
+
+- 优先使用Antd组件
+- CSS类名使用驼峰命名
+- 使用CSS Modules
+
+```typescript
+// ✅ Antd组件使用
+import { Button, List } from 'antd';
+<List renderItem={(item) => <Button>{item.name}</Button>} />
+```
+
+## ⚡ 性能优化
+
+- 使用React.memo、useMemo、useCallback优化重渲染
+- 列表渲染使用稳定的key
+- 清理事件监听器和定时器
+
+```typescript
+// ✅ 性能优化
+const Component = React.memo(({ data, onEdit }) => {
+  const handleEdit = useCallback(() => onEdit(data.id), [data.id, onEdit]);
+  return <div onClick={handleEdit}>{data.name}</div>;
+});
+```
+
+## 🚀 路由和组织
+
+### 路由跳转
+```typescript
+// ✅ 使用resolveRoute
+import { resolveRoute } from '@/routes';
+navigate(resolveRoute({ name: 'Home' }));
+
+// ❌ 避免硬编码
+navigate('/home');
+```
+
+### 项目组织
+- 类型定义放在`src/types/`
+- 常量枚举放在`src/constants/`
+- 枚举使用`I`前缀，映射使用`CN`后缀
+
+### 导入顺序
+```typescript
+// 1. React相关
+import React, { useState } from 'react';
+// 2. 第三方库  
+import { Button } from 'antd';
+// 3. @开头绝对路径
+import { resolveRoute } from '@/routes';
+// 4. 常量枚举
+import { ITaskType } from '@/constants/common';
+// 5. 相对路径
+import { helper } from '../utils';
+// 6. 类型导入
+import type { User } from '@/types/user';
+// 7. 样式文件
+import styles from './index.module.less';
+```
+
+## ✅ 核心检查清单
+
+### 必须检查
+- [ ] 变量函数命名具有描述性
+- [ ] TypeScript类型定义完整，避免any
+- [ ] 异步操作有错误处理
+- [ ] 避免对象引用共享错误
+- [ ] 定时器和事件监听器正确清理
+- [ ] 使用resolveRoute而不是硬编码路径
+
+### 性能检查
+- [ ] 避免render中昂贵计算
+- [ ] 合理使用memo、useMemo、useCallback
+- [ ] 列表key稳定
+
+### 组织检查
+- [ ] 新增类型放在src/types/对应文件
+- [ ] 新增枚举放在src/constants/对应文件
+- [ ] 导入顺序符合规范
+
+## 📋 开发原则
+
+- **完成代码后不要启动项目验证**
+- 相信TypeScript类型检查和ESLint规则
+- 重视代码审查而非运行时验证
+
+记住：**好代码应该易于理解、维护和扩展**

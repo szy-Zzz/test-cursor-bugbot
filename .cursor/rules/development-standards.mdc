@@ -1,0 +1,518 @@
+# 前端开发编程规范
+
+## 📏 基础代码规范
+
+### 命名约定
+- **变量/函数**: 使用 `camelCase`，具有描述性和语义化
+- **组件**: 使用 `PascalCase`，文件名使用 `kebab-case`
+- **常量**: 使用 `UPPER_SNAKE_CASE`
+- **CSS类名**: 使用 `camelCase` 驼峰命名
+
+```typescript
+// ✅ 好的命名
+const fetchUserProfile = async (userId: string) => { ... };
+const UserProfileCard: React.FC<UserProfileProps> = ({ user }) => { ... };
+const API_BASE_URL = 'https://api.example.com';
+
+// ❌ 避免的命名
+const getUserData = async (id: any) => { ... };
+const userCard = (props: any) => { ... };
+```
+
+### TypeScript 类型安全
+- **避免使用 `any`**，优先使用具体类型或联合类型
+- **为所有函数参数和返回值定义类型**
+- **为React组件定义Props接口**
+
+```typescript
+// ✅ 类型安全
+interface UserCardProps {
+  /** 用户信息 */
+  user: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  /** 是否显示在线状态 */
+  showOnlineStatus?: boolean;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ user, showOnlineStatus = false }) => {
+  return (
+    <div className={lessModule.userCard}>
+      {/* 用户头像区域 */}
+      <img src={user.avatar || '/default-avatar.png'} alt={user.name} />
+      <span>{user.name}</span>
+      {showOnlineStatus && (
+        <span className={lessModule.onlineIndicator}>在线</span>
+      )}
+    </div>
+  );
+};
+```
+
+## 💬 注释和文档
+
+### 函数注释
+- **复杂函数必须添加JSDoc注释**
+- **包含参数说明、返回值说明和使用示例**
+
+```typescript
+/**
+ * 计算购物车总价（含折扣）
+ * @param items - 购物车商品列表
+ * @param discountRate - 折扣率（0-1之间）
+ * @returns 计算后的总价格
+ * @example
+ * const total = calculateCartTotal([
+ *   { price: 100, quantity: 2 },
+ *   { price: 50, quantity: 1 }
+ * ], 0.1);
+ */
+const calculateCartTotal = (
+  items: CartItem[], 
+  discountRate: number = 0
+): number => {
+  const subtotal = items.reduce((sum, item) => 
+    sum + (item.price * item.quantity), 0
+  );
+  return subtotal * (1 - discountRate);
+};
+```
+
+### JSX注释规范
+**必须添加注释的场景：**
+- 主要功能区块的DOM容器
+- 复杂条件渲染逻辑
+- 重要交互元素
+- 数据循环渲染区域
+
+```typescript
+const TodoApp: React.FC<TodoAppProps> = ({ todos }) => {
+  return (
+    <div className={lessModule.todoApp}>
+      {/* 应用头部导航区域 */}
+      <header className={lessModule.appHeader}>
+        <h1>待办清单</h1>
+      </header>
+      
+      {/* 待办事项列表 - 根据过滤条件显示 */}
+      <div className={lessModule.todosContainer}>
+        {todos.map(todo => (
+          <div key={todo.id} className={lessModule.todoItem}>
+            {/* 完成状态切换复选框 */}
+            <input type="checkbox" checked={todo.completed} />
+            <span>{todo.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+## ⚠️ 关键代码逻辑
+
+### 避免对象引用共享错误
+```typescript
+// ❌ 错误：多个属性指向同一对象引用
+const createCounters = () => {
+  const initialState = { count: 0 };
+  return {
+    success: initialState,
+    error: initialState // 错误：修改一个会影响另一个
+  };
+};
+
+// ✅ 正确：每个属性独立的对象
+const createCounters = () => ({
+  success: { count: 0 },
+  error: { count: 0 }
+});
+
+// ✅ 或使用工厂函数
+const createInitialState = () => ({ count: 0 });
+const createCounters = () => ({
+  success: createInitialState(),
+  error: createInitialState()
+});
+```
+
+### 安全的异步操作
+```typescript
+// ✅ 完善的异步错误处理
+const fetchUserData = async (userId: string): Promise<User | null> => {
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('获取用户数据失败:', error);
+    return null;
+  }
+};
+
+// ✅ React中的副作用清理
+const DataFetcher: React.FC = () => {
+  useEffect(() => {
+    const timer = setInterval(() => { /* ... */ }, 1000);
+    return () => clearInterval(timer); // 清理函数
+  }, []);
+  
+  return <div>...</div>;
+};
+```
+
+### 防止无限循环和递归溢出
+```typescript
+// ✅ 安全的递归函数
+const traverseTreeSafely = (node: TreeNode, depth: number = 0): void => {
+  // 防止栈溢出的深度限制
+  if (depth > 1000) {
+    console.warn('达到最大深度限制');
+    return;
+  }
+  
+  // 处理当前节点
+  processNode(node);
+  
+  // 安全地遍历子节点
+  node.children?.forEach(child => 
+    traverseTreeSafely(child, depth + 1)
+  );
+};
+
+// ✅ 使用内置方法避免手动循环控制
+const findUserById = (users: User[], targetId: string): User | null => {
+  return users.find(user => user.id === targetId) || null;
+};
+```
+
+## 🎨 UI组件规范
+
+### Antd组件使用
+- **优先使用Antd组件**完成页面效果，避免重复造轮子
+- **合理配置Antd组件属性**，充分利用组件的功能特性
+- **统一使用Antd的设计规范**，保持界面一致性
+
+```typescript
+// ✅ 合理使用Antd组件
+import { Button, List, Typography, notification } from 'antd';
+
+const UserManagement: React.FC = () => {
+  const handleDelete = () => {
+    notification.warning({
+      message: '提示',
+      description: '确定要删除该用户吗？',
+    });
+  };
+
+  return (
+    <List
+      header={<Typography.Title level={4}>用户列表</Typography.Title>}
+      dataSource={users}
+      renderItem={(user) => (
+        <List.Item actions={[<Button onClick={handleDelete}>删除</Button>]}>
+          <Typography.Text strong>{user.name}</Typography.Text>
+        </List.Item>
+      )}
+    />
+  );
+};
+```
+
+## ⚡ 性能最佳实践
+
+### React性能优化
+```typescript
+// ✅ 使用React.memo和hooks优化性能
+const UserCard = React.memo<UserCardProps>(({ user, onEdit }) => {
+  const handleEdit = useCallback(() => onEdit(user.id), [user.id, onEdit]);
+  const displayName = useMemo(() => 
+    `${user.firstName} ${user.lastName}`.trim(),
+    [user.firstName, user.lastName]
+  );
+  
+  return (
+    <div className={lessModule.userCard}>
+      <span>{displayName}</span>
+      <button onClick={handleEdit}>编辑</button>
+    </div>
+  );
+});
+```
+
+### 内存管理
+```typescript
+// ✅ 正确清理定时器防止内存泄漏
+useEffect(() => {
+  const timer = setInterval(() => setTime(prev => prev + 1), 1000);
+  return () => clearInterval(timer);
+}, []);
+```
+
+## 🎨 样式和CSS
+
+### CSS模块化和命名
+```scss
+// ✅ 使用CSS Modules，类名使用驼峰命名
+.userCard {
+  padding: 16px;
+  border-radius: 8px;
+  
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+  }
+  
+  &.highlighted {
+    border: 2px solid var(--primary-color);
+  }
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+```
+
+## 🚀 路由跳转规范
+
+### 使用resolveRoute进行路由跳转
+- **统一使用`resolveRoute`函数**进行路由地址解析
+- **避免硬编码路径**，通过routeKey来获取路由路径
+- **支持动态参数和查询参数**的路由跳转
+
+```typescript
+// ✅ 正确的路由跳转方式
+import { resolveRoute } from '@/routes';
+
+const SomeComponent: React.FC = () => {
+  const navigate = useNavigate();
+
+  // 基本路由跳转
+  const goToHome = () => navigate(resolveRoute({ name: 'Home' }));
+
+  // 带参数的路由跳转  
+  const goToDetail = (id: string) => navigate(resolveRoute({ 
+    name: 'ServiceDetail', 
+    params: { id } 
+  }));
+
+  // 生成链接地址
+  const homeUrl = resolveRoute({ name: 'Home' });
+  
+  return <Button onClick={goToHome}>回到首页</Button>;
+};
+
+// ❌ 避免硬编码路径
+navigate('/home'); // 不推荐
+```
+
+### resolveRoute接口说明
+```typescript
+interface ResolveRouteType {
+  name: string;        // 路由名称(routeKey)
+  params?: CommonObject<any>;  // 路径参数
+  query?: CommonObject<any>;   // 查询参数
+}
+
+// 路由配置示例
+{
+  path: '/service-detail/:id',
+  routeKey: 'ServiceDetail',
+  element: <ServiceDetail />,
+}
+```
+
+## 📁 项目结构和组织
+
+### 类型和常量组织
+- **类型定义统一放在`src/types/`目录**
+- **常量、枚举、枚举映射统一放在`src/constants/`目录**
+- **按模块功能分别组织文件**，避免所有定义混在一个文件中
+- **通用类型放在`common.ts`**，模块特定类型放在对应的模块文件中
+
+```typescript
+// ✅ src/types/common.ts - 通用类型定义
+export interface CommonObject<T> {
+  [key: string]: T;
+}
+
+export interface HTTPResponse<T = any> {
+  code: string;
+  message: string;
+  result: T;
+}
+
+// ✅ src/types/ai-recommend.ts - 模块特定类型定义
+export interface StudyTask {
+  id: string;
+  type: IStudyTaskType;
+  status: IStudentStudyTaskStatus;
+}
+```
+
+```typescript
+// ✅ src/constants/ai-recommend.ts - 模块枚举和常量定义
+export enum IStudyTaskType {
+  SCHOOL_HOMEWORK = 1,
+  TEA_HOMEWORK = 2,
+  LECTIO_COURSE = 3,
+}
+
+// 枚举对应的中文映射
+export const StudyTaskTypeCN = {
+  [IStudyTaskType.SCHOOL_HOMEWORK]: '学校作业',
+  [IStudyTaskType.TEA_HOMEWORK]: '精准练',
+  [IStudyTaskType.LECTIO_COURSE]: '素养课程',
+};
+```
+
+### 文件命名和组织规则
+- **src/types/**: 按模块名称命名，如 `ai-recommend.ts`、`student-growth-profile.ts`
+- **src/constants/**: 与types目录对应，同样按模块命名
+- **导入时优先使用模块特定的定义**，通用定义从common文件导入
+- **枚举名使用`I`前缀** (如 `IStudyTaskType`)
+- **中文枚举映射对象使用`CN`后缀** (如 `StudyTaskTypeCN`)
+
+### 组件组织
+```
+src/
+├── components/          # 可复用组件
+│   ├── header/
+│   │   ├── index.tsx
+│   │   └── index.module.less
+│   ├── loading/
+│   │   ├── index.tsx
+│   │   ├── index.module.less
+│   │   └── simple-loading.module.less
+│   ├── empty/
+│   ├── confirm/
+│   └── error-boundary/
+├── pages/               # 页面组件
+│   ├── home/
+│   │   ├── index.tsx
+│   │   └── index.module.less
+│   ├── correct/
+│   ├── ai-recommend/
+│   └── student-growth-profile/
+├── hooks/               # 自定义Hooks
+├── utils/               # 工具函数
+├── types/               # TypeScript类型定义
+├── services/            # API服务
+├── constants/           # 常量定义
+├── store/               # 状态管理
+├── routes/              # 路由配置
+├── styles/              # 全局样式文件
+├── assets/              # 静态资源
+├── config/              # 配置文件
+└── http/                # HTTP相关
+```
+
+### 导入顺序
+```typescript
+// ✅ 清晰的导入顺序
+// 1. React相关
+import React, { useState, useEffect, useCallback } from 'react';
+
+// 2. 第三方库
+import { Button, List, Typography, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import classnames from 'classnames';
+
+// 3. @开头的绝对路径导入
+import { resolveRoute, routes } from '@/routes';
+import { useGlobalInfo } from '@/store/global';
+import { isAndroid, isIOS } from '@/utils/os';
+import { UserService } from '@/services/user';
+import LoadingPng from '@/assets/loading/xiaoyuanjia.webp';
+
+// 4. 常量和枚举导入
+import { IStudyTaskType, StudyTaskTypeCN } from '@/constants/ai-recommend';
+import { READING_BOOK_THEME_ENUM } from '@/constants/common';
+
+// 5. 相对路径导入
+import { LOGIN_EMBED_TYPE } from '../embed';
+import { SESSION_SELECTED_STUDENT_ID } from '../student-list';
+
+// 6. 类型导入
+import type { User, FormData } from '@/types/user';
+import type { StudyTask, StudentStudyTaskListVO } from '@/types/ai-recommend';
+
+// 7. 样式文件（最后导入）
+import lessModule from './index.module.less';
+```
+
+## ✅ 代码质量检查清单
+
+在编写代码时，请确保：
+
+### 基础检查
+- [ ] 变量和函数命名具有描述性
+- [ ] 所有TypeScript类型定义完整
+- [ ] 无未使用的变量和导入
+- [ ] 代码格式规范（使用Prettier）
+
+### 类型和常量检查
+- [ ] 新增类型定义放在`src/types/`对应模块文件中
+- [ ] 新增枚举和常量放在`src/constants/`对应模块文件中
+- [ ] 枚举使用`I`前缀命名
+- [ ] 中文枚举映射对象使用`CN`后缀命名
+- [ ] 通用类型放在common文件，模块特定类型放在对应模块文件
+
+### 逻辑检查  
+- [ ] 没有潜在的无限循环
+- [ ] 异步操作有错误处理
+- [ ] 避免对象引用共享错误
+- [ ] 事件监听器和定时器有正确清理
+
+### 性能检查
+- [ ] 避免在render中进行昂贵计算
+- [ ] 合理使用React.memo、useMemo、useCallback
+- [ ] 列表渲染使用稳定的key
+- [ ] 避免不必要的重渲染
+
+### 安全检查
+- [ ] API调用有错误处理
+- [ ] 敏感数据不在前端存储
+
+### 注释和文档
+- [ ] 复杂函数有JSDoc注释
+- [ ] 主要JSX区块有描述性注释
+- [ ] 业务逻辑有解释性注释
+- [ ] 组件Props有类型注释
+
+## 📋 开发流程规范
+
+### 代码完成后的验证
+- **完成代码生成或修改后不要启动项目去验证**
+- 专注于代码的静态分析和逻辑检查
+- 通过代码审查确保质量，而非运行时验证
+- 相信TypeScript类型检查和ESLint规则检查
+
+```typescript
+// ✅ 依赖类型检查而不是运行时验证
+const processUser = (user: UserData): string => {
+  return `${user.name} (${user.email})`;
+};
+
+// ✅ 使用ESLint规则检查代码质量
+const handleClick = useCallback(() => {
+  // useCallback依赖数组会被ESLint检查
+}, [dependency]);
+```
+
+### 开发建议
+- 编写代码时确保类型安全和逻辑正确性
+- 使用静态分析工具发现潜在问题
+- 重视代码审查和同行评议
+- 在提交前进行充分的代码自查
+
+记住：**好的代码不仅能正确运行，还应该易于理解、维护和扩展。**
+description:
+globs:
+alwaysApply: false
+---
